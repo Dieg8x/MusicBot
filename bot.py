@@ -48,6 +48,7 @@ class Settings:
     token: str
     application_id: Optional[int] = None
     test_guild_ids: tuple[int, ...] = ()
+    shard_count: Optional[int] = None
 
 
 def _parse_int_list(raw: Optional[str]) -> tuple[int, ...]:
@@ -77,15 +78,26 @@ def load_settings() -> Settings:
 
     guild_ids = _parse_int_list(os.getenv("GUILD_IDS"))
 
-    return Settings(token=token, application_id=app_id_int, test_guild_ids=guild_ids)
+    shard_count_raw = os.getenv("SHARD_COUNT")
+    shard_count = int(shard_count_raw) if shard_count_raw else None
+
+    return Settings(
+        token=token,
+        application_id=app_id_int,
+        test_guild_ids=guild_ids,
+        shard_count=shard_count,
+    )
 
 
 settings = load_settings()
 
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(
-    command_prefix=",", intents=intents, application_id=settings.application_id
+bot = commands.AutoShardedBot(
+    command_prefix=",",
+    intents=intents,
+    application_id=settings.application_id,
+    shard_count=settings.shard_count,
 )
 music_states: dict[int, MusicState] = {}
 
@@ -489,7 +501,10 @@ async def on_ready():
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} global commands.")
 
-    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    shard_info = (
+        f" across {bot.shard_count} shard(s)" if bot.shard_count else ""
+    )
+    print(f"Logged in as {bot.user} (ID: {bot.user.id}){shard_info}")
 
 
 def main():
