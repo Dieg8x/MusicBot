@@ -7,10 +7,8 @@ from typing import Iterable, Optional, Union
 import discord
 from discord import app_commands
 from discord.ext import commands
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 import yt_dlp
-
-load_dotenv()
 
 AUDIO_FORMAT = "bestaudio/best"
 YDL_OPTS = {
@@ -68,10 +66,26 @@ def _parse_int_list(raw: Optional[str]) -> tuple[int, ...]:
     return tuple(values)
 
 
+def load_env_file() -> None:
+    env_path = find_dotenv()
+    if env_path:
+        load_dotenv(env_path)
+
+
 def load_settings() -> Settings:
-    token = os.getenv("DISCORD_TOKEN")
-    if not token:
-        raise RuntimeError("DISCORD_TOKEN is not set in the environment.")
+    load_env_file()
+
+    token = os.getenv("DISCORD_TOKEN", "").strip()
+    placeholder_tokens = {
+        "your_bot_token_here",
+        "discord_token_here",
+        "paste_token_here",
+        "placeholder",
+    }
+    if not token or token.lower() in placeholder_tokens:
+        raise RuntimeError(
+            "DISCORD_TOKEN is required. Set it as an environment variable or add it to a .env file as DISCORD_TOKEN=YOUR_TOKEN."
+        )
 
     application_id = os.getenv("DISCORD_APPLICATION_ID")
     app_id_int = int(application_id) if application_id else None
